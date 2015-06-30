@@ -2,7 +2,7 @@
 # vim: set noai ts=4 sw=4:
 #
 # RVM fails with /usr/local/rvm/scripts/rvm: line 11: ZSH_VERSION: unbound variable
-#set -o nounset                  # exit on unset variables 
+#set -o nounset                  # exit on unset variables
 #set -o errexit                  # exit on shell error
 
 json="${1:-empty.json}"
@@ -47,9 +47,9 @@ fi
 # work.
 # ------------------------------------------------------------------
 installed () {
-    if [ -x /usr/local/rvm/bin/rvm ] ; then 
+    if [ -x /usr/local/rvm/bin/rvm ] ; then
         echo 'yes'
-    else 
+    else
         echo 'no'
     fi
 }
@@ -90,17 +90,7 @@ bootstrap() {
                     apt-get update -o Acquire::http::No-Cache=True
                     apt-get -o Dpkg::Options::="--force-confnew" --force-yes -fuy dist-upgrade
 
-                    # Install RVM as root (System-wide install)
-                    apt-get install -y build-essential openssl libreadline6 libreadline6-dev \
-                        curl git-core zlib1g zlib1g-dev libssl-dev libyaml-dev libsqlite3-0 \
-                        libsqlite3-dev sqlite3 libxml2-dev libxslt-dev autoconf libc6-dev \
-                        ncurses-dev automake libtool bison subversion libgdbm-dev pkg-config \
-                        libffi-dev nodejs libqt4-dev libqtwebkit-dev
-
-                    if [ -z $(cat /etc/group | grep 'rvm') ]
-                    then
-                        sudo groupadd rvm
-                    fi
+                    getent group rvm > /dev/null || sudo groupadd rvm
                     sudo usermod -a -G rvm ubuntu #add the ubuntu user to the rvm group
 
                     ;; # end Ubuntu
@@ -133,24 +123,24 @@ bootstrap() {
                     wget http://packages.sw.be/rpmforge-release/${RPMFORGE} -O /tmp/${RPMFORGE} || exit
                     rpm -Uhv /tmp/${RPMFORGE} || true
 
-                    yum -y install bison gcc-c++ mhash mhash-devel mustang git 
+                    yum -y install bison gcc-c++ mhash mhash-devel mustang git
 
                     # ------------------------------------------------------------------
-                    # Install EPEL repo on CentOS/RedHat system - needed for LibYAML 
+                    # Install EPEL repo on CentOS/RedHat system - needed for LibYAML
                     # and other dependencies.
                     # ------------------------------------------------------------------
                     yum repolist | grep epel 2>&1 > /dev/null || ( \
                         echo ' **** Install EPEL repository **** '
                         wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
                         wget http://rpms.famillecollet.com/enterprise/remi-release-6.rpm
-                        sudo rpm -Uvh remi-release-6*.rpm epel-release-6*.rpm 
+                        sudo rpm -Uvh remi-release-6*.rpm epel-release-6*.rpm
                     )
 
                     ## NOTE: For centos >= 5.4 iconv-devel is provided by glibc
                     yum install -y gcc-c++ patch readline readline-devel zlib zlib-devel \
                         libyaml-devel libffi-devel openssl-devel make bzip2 autoconf \
                         automake libtool bison iconv-devel mysql-devel sqlite-devel
-                  
+
                     ;; # end CentOS
 
 
@@ -174,6 +164,8 @@ bootstrap() {
 # ------------------------------------------------------------------
 install_rvm () {
     test $(installed) = 'yes' && { echo ">>>>>>>> RVM already installed "; return; }
+    curl -sSL https://rvm.io/mpapis.asc | sudo gpg --import -
+
     curl -L https://get.rvm.io | sudo bash -s stable --autolibs=enabled --auto-dotfiles
 }
 
@@ -217,20 +209,20 @@ install_chef () {
 # -----------------------------------------------------------------------------
 
 update_rubygems () {
-    if [[ ! -z ${RUBYGEMS} ]]; then 
+    if [[ ! -z ${RUBYGEMS} ]]; then
         local CURRENT=$(gem --version)
         if [[ "${CURRENT}" != "${RUBYGEMS}" ]]; then
             gem update --system ${RUBYGEMS};                   # See KNOWN_PROBLEMS #1
             gem install --no-rdoc --no-ri json --version=1.7.7 # See KNOWN_PROBLEMS #2
         fi
-    fi  
+    fi
 }
 
 # --------------------------------------------------------------------------------
 # End of functions. Start main part
 # --------------------------------------------------------------------------------
 
-test -f ${chef_binary} || ( \   
+test -f ${chef_binary} || ( \
     bootstrap
     install_rvm
     install_ruby
